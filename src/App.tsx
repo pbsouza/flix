@@ -66,21 +66,39 @@ export default function App() {
       setCategories(cList);
     } catch (e) {
       console.error('Failed to load admin data', e);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   // Verify Admin JWT token on mount or view change
   useEffect(() => {
+    let isMounted = true;
     const checkAuth = async () => {
-      const ok = await verifyAdminAuth();
-      setIsAdminAuth(ok);
-      if (ok && currentView === 'admin') {
-        loadAdminData();
-      } else {
-        loadPublicData();
+      try {
+        const ok = await verifyAdminAuth();
+        if (!isMounted) return;
+        setIsAdminAuth(ok);
+        if (ok && currentView === 'admin') {
+          await loadAdminData();
+        } else {
+          await loadPublicData();
+        }
+      } catch (e) {
+        console.error('Check auth error', e);
+        if (isMounted) {
+          await loadPublicData();
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     checkAuth();
+    return () => {
+      isMounted = false;
+    };
   }, [currentView, loadAdminData, loadPublicData]);
 
   // Handle Video Selection

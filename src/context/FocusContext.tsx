@@ -24,10 +24,8 @@ export const FocusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const unregisterFocusable = useCallback((id: string) => {
     elementsRef.current.delete(id);
-    if (focusedId === id) {
-      setFocusedId(null);
-    }
-  }, [focusedId]);
+    setFocusedId((prev) => (prev === id ? null : prev));
+  }, []);
 
   const toggleTVMode = useCallback(() => {
     setIsTVMode((prev) => !prev);

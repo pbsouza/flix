@@ -161,13 +161,20 @@ function getAuthHeaders(): Record<string, string> {
 
 // Safely attempts a JSON fetch from backend; falls back if unavailable or not JSON
 async function safeApiFetch<T>(url: string, options?: RequestInit): Promise<T | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
   try {
-    const res = await fetch(url, options);
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
     if (!res.ok) return null;
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) return null;
     return await res.json();
   } catch {
+    clearTimeout(timeoutId);
     return null;
   }
 }
@@ -282,15 +289,19 @@ export async function loginAdmin(username: string, password: string): Promise<{ 
 export async function verifyAdminAuth(): Promise<boolean> {
   const token = getAuthToken();
   if (!token) return false;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000);
   try {
     const res = await fetch(`${API_BASE}/auth/me`, {
       headers: getAuthHeaders(),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (res.ok) return true;
   } catch {
-    // Fallback
+    clearTimeout(timeoutId);
   }
-  return token.startsWith('static_admin_token') || Boolean(token);
+  return token.startsWith('static_admin_token');
 }
 
 export async function changeAdminPassword(newPassword: string): Promise<void> {
