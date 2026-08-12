@@ -1,0 +1,6 @@
+{
+  "name": "CineStream - VOD Smart TV",
+  "description": "Plataforma de vídeo sob demanda otimizada para Smart TV, com navegação por controle remoto, área pública e painel administrativo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
