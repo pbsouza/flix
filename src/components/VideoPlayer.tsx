@@ -209,26 +209,38 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, category, onClo
       onClick={resetControlsTimeout}
       className="fixed inset-0 z-50 bg-black flex items-center justify-center select-none overflow-hidden"
     >
-      {/* Top Header Controls Overlay */}
+      {/* Top Hover / Sensitivity Zone for showing controls */}
       <div
-        className={`absolute top-0 left-0 right-0 p-6 z-30 bg-gradient-to-b from-black/90 via-black/50 to-transparent flex items-center justify-between transition-opacity duration-300 ${
-          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        onMouseMove={resetControlsTimeout}
+        onMouseEnter={resetControlsTimeout}
+        className="absolute top-0 left-0 right-0 h-24 z-30 pointer-events-auto"
+      />
+
+      {/* Top Header Controls Overlay with Back Button */}
+      <div
+        className={`absolute top-0 left-0 right-0 p-4 md:p-6 z-40 bg-gradient-to-b from-black/95 via-black/60 to-transparent flex items-center justify-between transition-opacity duration-700 ease-in-out ${
+          showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
         <button
           {...closeFocus.focusProps}
-          className={`flex items-center gap-3 px-5 py-3 rounded-2xl bg-zinc-900/80 border border-zinc-700/80 text-white font-bold transition-all ${
-            closeFocus.isFocused ? 'ring-4 ring-red-500 scale-105 bg-red-600 border-red-500' : 'hover:bg-zinc-800'
+          onClick={() => {
+            closeFocus.focusProps.onClick?.();
+            onClose();
+          }}
+          className={`flex items-center gap-2.5 px-4 md:px-5 py-2.5 md:py-3 rounded-2xl bg-zinc-900/90 border border-zinc-700/80 text-white font-bold transition-all shadow-2xl backdrop-blur-md cursor-pointer ${
+            closeFocus.isFocused ? 'ring-4 ring-red-500 scale-105 bg-red-600 border-red-500' : 'hover:bg-red-600 hover:border-red-500 active:scale-95'
           }`}
+          title="Voltar ao catálogo"
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Voltar ao Menu</span>
+          <ArrowLeft className="w-5 h-5 text-red-500 group-hover:text-white transition-colors" />
+          <span className="text-sm md:text-base">Voltar ao Menu</span>
         </button>
 
-        <div className="text-right max-w-xl">
-          <h2 className="text-lg md:text-xl font-bold text-white line-clamp-1">{video.title}</h2>
+        <div className="text-right max-w-xl pointer-events-none">
+          <h2 className="text-base md:text-xl font-bold text-white line-clamp-1 drop-shadow-md">{video.title}</h2>
           {category && (
-            <span className="text-xs text-red-400 font-semibold uppercase tracking-wider block">
+            <span className="text-xs text-red-400 font-semibold uppercase tracking-wider block drop-shadow">
               {category.name}
             </span>
           )}
@@ -289,8 +301,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, category, onClo
       {/* BOTTOM CONTROL BAR OVERLAY */}
       {!isIframeFallback && (
         <div
-          className={`absolute bottom-0 left-0 right-0 p-6 md:p-8 z-30 bg-gradient-to-t from-black/95 via-black/70 to-transparent transition-opacity duration-300 space-y-4 ${
-            showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          className={`absolute bottom-0 left-0 right-0 p-6 md:p-8 z-30 bg-gradient-to-t from-black/95 via-black/70 to-transparent transition-opacity duration-700 ease-in-out space-y-4 ${
+            showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         >
           {/* Progress Seek Bar */}
