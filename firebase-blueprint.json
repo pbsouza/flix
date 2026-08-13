@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CineStream VOD Firebase Blueprint",
+  "description": "Esquema de dados e regras para armazenamento de links de vídeos e categorias no Firestore",
+  "collections": {
+    "categories": {
+      "description": "Coleção de categorias de vídeos",
+      "allowRead": "true",
+      "allowWrite": "true",
+      "fields": {
+        "name": { "type": "string", "required": true },
+        "slug": { "type": "string", "required": true },
+        "display_order": { "type": "number", "required": true },
+        "active": { "type": "boolean", "required": true }
+      }
+    },
+    "videos": {
+      "description": "Coleção de metadados e links de vídeos (sem arquivos pesados)",
+      "allowRead": "true",
+      "allowWrite": "true",
+      "fields": {
+        "title": { "type": "string", "required": true },
+        "description": { "type": "string", "required": false },
+        "category_id": { "type": "string", "required": true },
+        "provider": { "type": "string", "required": true },
+        "source_url": { "type": "string", "required": true },
+        "playback_url": { "type": "string", "required": true },
+        "thumbnail_type": { "type": "string", "required": false },
+        "thumbnail_url": { "type": "string", "required": false },
+        "featured": { "type": "boolean", "required": true },
+        "active": { "type": "boolean", "required": true },
+        "display_order": { "type": "number", "required": true },
+        "duration": { "type": "string", "required": false },
+        "created_at": { "type": "string", "required": true },
+        "updated_at": { "type": "string", "required": true }
+      }
+    },
+    "app_meta": {
+      "description": "Documento de carimbo de data/hora da última atualização para controle de cache inteligente",
+      "allowRead": "true",
+      "allowWrite": "true",
+      "fields": {
+        "last_updated": { "type": "number", "required": true }
+      }
+    }
+  }
+}

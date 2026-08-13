@@ -1,4 +1,12 @@
 import { Video, Category, ResolvedStream } from '../types';
+import {
+  getFirebaseVideos,
+  getFirebaseCategories,
+  saveFirebaseVideo,
+  removeFirebaseVideo,
+  saveFirebaseCategory,
+  removeFirebaseCategory
+} from './firebaseSync';
 
 const API_BASE = '/api';
 
@@ -96,6 +104,12 @@ async function safeApiFetch<T>(url: string, options?: RequestInit): Promise<T | 
 }
 
 export async function fetchPublicVideos(): Promise<Video[]> {
+  try {
+    const fbVideos = await getFirebaseVideos();
+    return fbVideos.filter((v) => v.active);
+  } catch (err) {
+    console.warn('Erro no Firebase, usando fallback local:', err);
+  }
   const remote = await safeApiFetch<Video[]>(`${API_BASE}/videos`);
   if (remote) {
     setLocalVideos(remote);
@@ -105,6 +119,12 @@ export async function fetchPublicVideos(): Promise<Video[]> {
 }
 
 export async function fetchAdminVideos(): Promise<Video[]> {
+  try {
+    const fbVideos = await getFirebaseVideos();
+    return fbVideos;
+  } catch (err) {
+    console.warn('Erro no Firebase, usando fallback local:', err);
+  }
   const remote = await safeApiFetch<Video[]>(`${API_BASE}/videos?admin=true`);
   if (remote) {
     setLocalVideos(remote);
@@ -114,6 +134,12 @@ export async function fetchAdminVideos(): Promise<Video[]> {
 }
 
 export async function fetchCategories(admin = false): Promise<Category[]> {
+  try {
+    const fbCats = await getFirebaseCategories();
+    return admin ? fbCats : fbCats.filter((c) => c.active);
+  } catch (err) {
+    console.warn('Erro no Firebase, usando fallback local:', err);
+  }
   const remote = await safeApiFetch<Category[]>(`${API_BASE}/categories${admin ? '?admin=true' : ''}`);
   if (remote) {
     setLocalCategories(remote);
@@ -239,23 +265,7 @@ export async function changeAdminPassword(newPassword: string): Promise<void> {
 
 // Admin Video CRUD
 export async function createVideo(videoData: Partial<Video>): Promise<Video> {
-  try {
-    const res = await fetch(`${API_BASE}/admin/videos`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-      },
-      body: JSON.stringify(videoData),
-    });
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch {
-    // Fallback
-  }
-
-  const list = getLocalVideos();
+  const list = await getFirebaseVideos().catch(() => getLocalVideos());
   const id = 'vid-' + Date.now();
   const newVideo: Video = {
     id,
@@ -276,84 +286,84 @@ export async function createVideo(videoData: Partial<Video>): Promise<Video> {
   };
 
   if (newVideo.featured) {
-    list.forEach((v) => (v.featured = false));
+    for (const v of list) {
+      if (v.featured) {
+        await saveFirebaseVideo({ ...v, featured: false }).catch(() => {});
+      }
+    }
   }
 
-  list.unshift(newVideo);
-  setLocalVideos(list);
+  // Save in Firebase
+  await saveFirebaseVideo(newVideo).catch((err) => {
+    console.warn('Erro ao salvar no Firebase, salvando localmente:', err);
+    const local = getLocalVideos();
+    local.unshift(newVideo);
+    setLocalVideos(local);
+  });
+
+  // Sync with Express backend if available
+  fetch(`${API_BASE}/admin/videos`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(newVideo),
+  }).catch(() => {});
+
   return newVideo;
 }
 
 export async function updateVideo(id: string, updates: Partial<Video>): Promise<Video> {
-  try {
-    const res = await fetch(`${API_BASE}/admin/videos/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-      },
-      body: JSON.stringify(updates),
-    });
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch {
-    // Fallback
-  }
-
-  const list = getLocalVideos();
+  const list = await getFirebaseVideos().catch(() => getLocalVideos());
   const idx = list.findIndex((v) => v.id === id);
-  if (idx === -1) throw new Error('Vídeo não encontrado.');
+  const currentVideo = idx !== -1 ? list[idx] : getLocalVideos().find((v) => v.id === id);
+  if (!currentVideo) throw new Error('Vídeo não encontrado.');
 
   if (updates.featured) {
-    list.forEach((v) => {
-      if (v.id !== id) v.featured = false;
-    });
+    for (const v of list) {
+      if (v.id !== id && v.featured) {
+        await saveFirebaseVideo({ ...v, featured: false }).catch(() => {});
+      }
+    }
   }
 
   const updated: Video = {
-    ...list[idx],
+    ...currentVideo,
     ...updates,
     updated_at: new Date().toISOString(),
   };
 
-  list[idx] = updated;
-  setLocalVideos(list);
+  await saveFirebaseVideo(updated).catch((err) => {
+    console.warn('Erro ao atualizar no Firebase, atualizando localmente:', err);
+    const local = getLocalVideos();
+    const lIdx = local.findIndex((v) => v.id === id);
+    if (lIdx !== -1) local[lIdx] = updated;
+    setLocalVideos(local);
+  });
+
+  fetch(`${API_BASE}/admin/videos/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(updates),
+  }).catch(() => {});
+
   return updated;
 }
 
 export async function deleteVideo(id: string): Promise<void> {
-  try {
-    const res = await fetch(`${API_BASE}/admin/videos/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    if (res.ok) return;
-  } catch {
-    // Fallback
-  }
+  await removeFirebaseVideo(id).catch((err) => {
+    console.warn('Erro ao remover no Firebase, removendo localmente:', err);
+    const list = getLocalVideos().filter((v) => v.id !== id);
+    setLocalVideos(list);
+  });
 
-  const list = getLocalVideos().filter((v) => v.id !== id);
-  setLocalVideos(list);
+  fetch(`${API_BASE}/admin/videos/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  }).catch(() => {});
 }
 
 // Admin Category CRUD
 export async function createCategory(name: string, active = true): Promise<Category> {
-  try {
-    const res = await fetch(`${API_BASE}/admin/categories`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-      },
-      body: JSON.stringify({ name, active }),
-    });
-    if (res.ok) return await res.json();
-  } catch {
-    // Fallback
-  }
-
-  const list = getLocalCategories();
+  const list = await getFirebaseCategories().catch(() => getLocalCategories());
   const id = 'cat-' + Date.now();
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   const newCat: Category = {
@@ -363,49 +373,55 @@ export async function createCategory(name: string, active = true): Promise<Categ
     display_order: list.length + 1,
     active,
   };
-  list.push(newCat);
-  setLocalCategories(list);
+
+  await saveFirebaseCategory(newCat).catch(() => {
+    const local = getLocalCategories();
+    local.push(newCat);
+    setLocalCategories(local);
+  });
+
+  fetch(`${API_BASE}/admin/categories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ name, active }),
+  }).catch(() => {});
+
   return newCat;
 }
 
 export async function updateCategory(id: string, updates: Partial<Category>): Promise<Category> {
-  try {
-    const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders(),
-      },
-      body: JSON.stringify(updates),
-    });
-    if (res.ok) return await res.json();
-  } catch {
-    // Fallback
-  }
+  const list = await getFirebaseCategories().catch(() => getLocalCategories());
+  const existing = list.find((c) => c.id === id);
+  if (!existing) throw new Error('Categoria não encontrada.');
 
-  const list = getLocalCategories();
-  const idx = list.findIndex((c) => c.id === id);
-  if (idx === -1) throw new Error('Categoria não encontrada.');
+  const updated = { ...existing, ...updates };
 
-  const updated = { ...list[idx], ...updates };
-  list[idx] = updated;
-  setLocalCategories(list);
+  await saveFirebaseCategory(updated).catch(() => {
+    const local = getLocalCategories();
+    const idx = local.findIndex((c) => c.id === id);
+    if (idx !== -1) local[idx] = updated;
+    setLocalCategories(local);
+  });
+
+  fetch(`${API_BASE}/admin/categories/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(updates),
+  }).catch(() => {});
+
   return updated;
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-  try {
-    const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    if (res.ok) return;
-  } catch {
-    // Fallback
-  }
+  await removeFirebaseCategory(id).catch(() => {
+    const list = getLocalCategories().filter((c) => c.id !== id);
+    setLocalCategories(list);
+  });
 
-  const list = getLocalCategories().filter((c) => c.id !== id);
-  setLocalCategories(list);
+  fetch(`${API_BASE}/admin/categories/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  }).catch(() => {});
 }
 
 // Upload Thumbnail
