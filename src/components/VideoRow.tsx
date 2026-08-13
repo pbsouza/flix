@@ -32,9 +32,9 @@ export const VideoRow: React.FC<VideoRowProps> = ({
   return (
     <div className="space-y-3 mb-8">
       {/* Row Header */}
-      <div className="flex items-center justify-between px-2">
-        <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
-          <span className="w-2 h-6 bg-red-600 rounded-full inline-block" />
+      <div className="flex items-center justify-between px-1 sm:px-2">
+        <h2 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
+          <span className="w-1.5 sm:w-2 h-5 sm:h-6 bg-red-600 rounded-full inline-block" />
           {title}
         </h2>
 

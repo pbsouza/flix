@@ -1,0 +1,51 @@
+[
+  {
+    "id": "cat-1",
+    "name": "Ação",
+    "slug": "acao",
+    "display_order": 1,
+    "active": true
+  },
+  {
+    "id": "cat-2",
+    "name": "Comédia",
+    "slug": "comedia",
+    "display_order": 2,
+    "active": true
+  },
+  {
+    "id": "cat-3",
+    "name": "Drama",
+    "slug": "drama",
+    "display_order": 3,
+    "active": true
+  },
+  {
+    "id": "cat-4",
+    "name": "Ficção Científica",
+    "slug": "ficcao-cientifica",
+    "display_order": 4,
+    "active": true
+  },
+  {
+    "id": "cat-5",
+    "name": "Terror & Suspense",
+    "slug": "terror-suspense",
+    "display_order": 5,
+    "active": true
+  },
+  {
+    "id": "cat-6",
+    "name": "Animação",
+    "slug": "animacao",
+    "display_order": 6,
+    "active": true
+  },
+  {
+    "id": "cat-7",
+    "name": "Documentários",
+    "slug": "documentarios",
+    "display_order": 7,
+    "active": true
+  }
+]

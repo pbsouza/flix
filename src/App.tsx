@@ -224,7 +224,7 @@ export default function App() {
           <div className="min-h-screen flex flex-col">
             <Header currentView={currentView} onNavigate={setCurrentView} />
 
-            <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-6">
+            <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6">
               {loading ? (
                 <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
                   <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />

@@ -218,7 +218,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, category, onClo
 
       {/* Top Header Controls Overlay with Back Button */}
       <div
-        className={`absolute top-0 left-0 right-0 p-4 md:p-6 z-40 bg-gradient-to-b from-black/95 via-black/60 to-transparent flex items-center justify-between transition-opacity duration-700 ease-in-out ${
+        className={`absolute top-0 left-0 right-0 p-3 sm:p-5 md:p-6 z-40 bg-gradient-to-b from-black/95 via-black/60 to-transparent flex items-center justify-between transition-opacity duration-700 ease-in-out gap-3 ${
           showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -228,19 +228,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, category, onClo
             closeFocus.focusProps.onClick?.();
             onClose();
           }}
-          className={`flex items-center gap-2.5 px-4 md:px-5 py-2.5 md:py-3 rounded-2xl bg-zinc-900/90 border border-zinc-700/80 text-white font-bold transition-all shadow-2xl backdrop-blur-md cursor-pointer ${
+          className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl bg-zinc-900/90 border border-zinc-700/80 text-white font-bold transition-all shadow-2xl backdrop-blur-md cursor-pointer flex-shrink-0 ${
             closeFocus.isFocused ? 'ring-4 ring-red-500 scale-105 bg-red-600 border-red-500' : 'hover:bg-red-600 hover:border-red-500 active:scale-95'
           }`}
           title="Voltar ao catálogo"
         >
-          <ArrowLeft className="w-5 h-5 text-red-500 group-hover:text-white transition-colors" />
-          <span className="text-sm md:text-base">Voltar ao Menu</span>
+          <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 group-hover:text-white transition-colors" />
+          <span className="text-xs sm:text-base">Voltar ao Menu</span>
         </button>
 
-        <div className="text-right max-w-xl pointer-events-none">
-          <h2 className="text-base md:text-xl font-bold text-white line-clamp-1 drop-shadow-md">{video.title}</h2>
+        <div className="text-right max-w-[160px] xs:max-w-[260px] sm:max-w-xl pointer-events-none">
+          <h2 className="text-xs sm:text-lg md:text-xl font-bold text-white line-clamp-1 drop-shadow-md">{video.title}</h2>
           {category && (
-            <span className="text-xs text-red-400 font-semibold uppercase tracking-wider block drop-shadow">
+            <span className="text-[10px] sm:text-xs text-red-400 font-semibold uppercase tracking-wider block drop-shadow">
               {category.name}
             </span>
           )}
@@ -301,14 +301,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, category, onClo
       {/* BOTTOM CONTROL BAR OVERLAY */}
       {!isIframeFallback && (
         <div
-          className={`absolute bottom-0 left-0 right-0 p-6 md:p-8 z-30 bg-gradient-to-t from-black/95 via-black/70 to-transparent transition-opacity duration-700 ease-in-out space-y-4 ${
+          className={`absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 z-30 bg-gradient-to-t from-black/95 via-black/70 to-transparent transition-opacity duration-700 ease-in-out space-y-2.5 sm:space-y-4 ${
             showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         >
           {/* Progress Seek Bar */}
           <div className="space-y-1">
             <div
-              className="w-full h-2 bg-zinc-800 rounded-full cursor-pointer overflow-hidden relative"
+              className="w-full h-1.5 sm:h-2 bg-zinc-800 rounded-full cursor-pointer overflow-hidden relative"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const pos = (e.clientX - rect.left) / rect.width;
@@ -322,65 +322,65 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ video, category, onClo
                 style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs font-semibold text-zinc-400 px-1">
+            <div className="flex justify-between text-[10px] sm:text-xs font-semibold text-zinc-400 px-1">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
 
           {/* Action Buttons Row */}
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between pt-1 sm:pt-2">
+            <div className="flex items-center gap-2 sm:gap-4">
               <button
                 {...rewindFocus.focusProps}
-                className={`p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white transition-all ${
+                className={`p-2.5 sm:p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white transition-all ${
                   rewindFocus.isFocused ? 'ring-4 ring-red-500 scale-110 bg-red-600 border-red-500' : ''
                 }`}
                 title="Voltar 10s"
               >
-                <RotateCcw className="w-5 h-5" />
+                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
               <button
                 {...playFocus.focusProps}
-                className={`p-4 rounded-2xl bg-red-600 text-white transition-all shadow-lg ${
+                className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-red-600 text-white transition-all shadow-lg ${
                   playFocus.isFocused ? 'ring-4 ring-red-400 scale-110 shadow-red-900/70' : ''
                 }`}
                 title={isPlaying ? 'Pausar' : 'Reproduzir'}
               >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 fill-white" />}
+                {isPlaying ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />}
               </button>
 
               <button
                 {...forwardFocus.focusProps}
-                className={`p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white transition-all ${
+                className={`p-2.5 sm:p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white transition-all ${
                   forwardFocus.isFocused ? 'ring-4 ring-red-500 scale-110 bg-red-600 border-red-500' : ''
                 }`}
                 title="Avançar 10s"
               >
-                <RotateCw className="w-5 h-5" />
+                <RotateCw className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <button
                 {...muteFocus.focusProps}
-                className={`p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white transition-all ${
+                className={`p-2.5 sm:p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white transition-all ${
                   muteFocus.isFocused ? 'ring-4 ring-red-500 scale-110 bg-red-600 border-red-500' : ''
                 }`}
                 title="Mutar"
               >
-                {isMuted ? <VolumeX className="w-5 h-5 text-red-400" /> : <Volume2 className="w-5 h-5" />}
+                {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
 
               <button
                 {...fullscreenFocus.focusProps}
-                className={`p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white transition-all ${
+                className={`p-2.5 sm:p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-white transition-all ${
                   fullscreenFocus.isFocused ? 'ring-4 ring-red-500 scale-110 bg-red-600 border-red-500' : ''
                 }`}
                 title="Tela Cheia"
               >
-                <Maximize className="w-5 h-5" />
+                <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>

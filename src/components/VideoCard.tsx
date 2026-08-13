@@ -8,6 +8,7 @@ interface VideoCardProps {
   categoryName?: string;
   onSelect: (video: Video) => void;
   focusPrefix?: string;
+  className?: string;
 }
 
 export const VideoCard: React.FC<VideoCardProps> = ({
@@ -15,6 +16,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   categoryName,
   onSelect,
   focusPrefix = 'card',
+  className = '',
 }) => {
   const [imgError, setImgError] = useState(false);
   const cardId = `${focusPrefix}-${video.id}`;
@@ -30,10 +32,12 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   return (
     <div
       {...focusProps}
-      className={`group relative flex-shrink-0 w-64 md:w-72 rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800 cursor-pointer select-none transition-all duration-300 ${
+      className={`group relative flex-shrink-0 rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800 cursor-pointer select-none transition-all duration-300 ${
+        className || 'w-48 xs:w-56 sm:w-64 md:w-72'
+      } ${
         isFocused
           ? 'ring-4 ring-red-500 scale-105 z-20 border-red-500 shadow-2xl shadow-red-950/80 bg-zinc-800'
-          : 'hover:scale-[1.02] hover:border-zinc-700'
+          : 'hover:scale-[1.02] hover:border-zinc-700 active:scale-95'
       }`}
     >
       {/* Poster Image Box */}
