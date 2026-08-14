@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+@layer base {
+  html,
+  body,
+  #root {
+    background-color: #000000 !important;
+    background: #000000 !important;
+    color: #ffffff;
+    min-height: 100vh;
+  }
+}
+
+/* Ensure OLED / Smart TV deep black level without grayish background bleed */
+body {
+  background-color: #000000 !important;
+  background: #000000 !important;
+  overflow-x: hidden;
+}

@@ -135,8 +135,20 @@ export const AdminVideos: React.FC<AdminVideosProps> = ({
                           className="w-20 aspect-video object-cover rounded-lg border border-zinc-800"
                         />
                       </td>
-                      <td className="p-4 font-bold text-white max-w-xs truncate">
-                        {video.title}
+                      <td className="p-4 font-bold text-white max-w-xs">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {video.is_series && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-red-600 text-white uppercase">
+                              SÉRIE
+                            </span>
+                          )}
+                          {video.series_id && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-zinc-800 text-red-400 border border-zinc-700 uppercase">
+                              T{video.season || 1}:E{video.episode_number || 1}
+                            </span>
+                          )}
+                          <span className="truncate">{video.title}</span>
+                        </div>
                       </td>
                       <td className="p-4 font-semibold text-zinc-400">{catName}</td>
                       <td className="p-4">
@@ -248,6 +260,7 @@ export const AdminVideos: React.FC<AdminVideosProps> = ({
         <VideoFormModal
           video={editingVideo}
           categories={categories}
+          allVideos={videos}
           onSave={handleModalSave}
           onClose={() => setIsModalOpen(false)}
         />

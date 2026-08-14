@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { HeroFeatured } from './components/HeroFeatured';
 import { VideoRow } from './components/VideoRow';
 import { VideoPlayer } from './components/VideoPlayer';
+import { SeriesModal } from './components/SeriesModal';
 import { CategoryView } from './components/CategoryView';
 import { SearchView } from './components/SearchView';
 import { AdminLogin } from './components/admin/AdminLogin';
@@ -29,6 +30,7 @@ import {
 export default function App() {
   const [currentView, setCurrentView] = useState<AppView>('home');
   const [playingVideo, setPlayingVideo] = useState<Video | null>(null);
+  const [selectedSeries, setSelectedSeries] = useState<Video | null>(null);
 
   // Data states
   const [videos, setVideos] = useState<Video[]>([]);
@@ -103,7 +105,11 @@ export default function App() {
 
   // Handle Video Selection
   const handleSelectVideo = (video: Video) => {
-    setPlayingVideo(video);
+    if (video.is_series) {
+      setSelectedSeries(video);
+    } else {
+      setPlayingVideo(video);
+    }
   };
 
   // --- ADMIN ACTIONS ---
@@ -149,23 +155,37 @@ export default function App() {
   // Find main featured video
   const featuredVideo = videos.find((v) => v.featured) || videos[0] || null;
 
-  // Group videos by category for Home carousels
+  // Group videos by category for Home carousels (excluding individual episodes, which belong to series)
   const categoriesWithVideos = categories
     .map((cat) => ({
       category: cat,
-      videos: videos.filter((v) => v.category_id === cat.id),
+      videos: videos.filter((v) => v.category_id === cat.id && !v.series_id),
     }))
     .filter((item) => item.videos.length > 0);
 
   return (
     <FocusProvider>
-      <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-red-600 selection:text-white">
+      <div className="min-h-screen bg-black text-white font-sans selection:bg-red-600 selection:text-white">
         {/* Fullscreen Video Player Modal */}
         {playingVideo && (
           <VideoPlayer
             video={playingVideo}
             category={categories.find((c) => c.id === playingVideo.category_id)}
             onClose={() => setPlayingVideo(null)}
+          />
+        )}
+
+        {/* Series Episodes Selection Modal */}
+        {selectedSeries && (
+          <SeriesModal
+            series={selectedSeries}
+            episodes={videos.filter((v) => v.series_id === selectedSeries.id)}
+            category={categories.find((c) => c.id === selectedSeries.category_id)}
+            onClose={() => setSelectedSeries(null)}
+            onPlayEpisode={(ep) => {
+              setSelectedSeries(null);
+              setPlayingVideo(ep);
+            }}
           />
         )}
 

@@ -281,6 +281,10 @@ export async function createVideo(videoData: Partial<Video>): Promise<Video> {
     active: videoData.active !== undefined ? videoData.active : true,
     display_order: list.length + 1,
     duration: videoData.duration || '05:00',
+    is_series: Boolean(videoData.is_series),
+    series_id: videoData.series_id || '',
+    season: videoData.season || 1,
+    episode_number: videoData.episode_number || 1,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

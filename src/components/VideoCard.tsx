@@ -62,8 +62,16 @@ export const VideoCard: React.FC<VideoCardProps> = ({
         </div>
 
         {/* Provider Tag Badge */}
-        <div className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-black/70 text-zinc-300 border border-zinc-700/50 backdrop-blur-md">
-          {video.provider}
+        <div className="absolute top-2 left-2 flex items-center gap-1">
+          {video.is_series ? (
+            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-600 text-white shadow-md shadow-red-950/80">
+              SÉRIE
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-black/70 text-zinc-300 border border-zinc-700/50 backdrop-blur-md">
+              {video.provider}
+            </span>
+          )}
         </div>
 
         {/* Duration Badge */}

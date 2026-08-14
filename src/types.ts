@@ -9,14 +9,19 @@ export interface Video {
   provider: VideoProviderType;
   source_url: string;
   playback_url: string;
-  thumbnail_type: ThumbnailType;
+  thumbnail_type?: ThumbnailType;
   thumbnail_url: string;
-  featured: boolean;
-  active: boolean;
-  display_order: number;
-  duration: string;
-  created_at: string;
-  updated_at: string;
+  featured?: boolean;
+  active?: boolean;
+  display_order?: number;
+  duration?: string;
+  is_series?: boolean;
+  series_id?: string;
+  season?: number;
+  episode_number?: number;
+  views?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Category {

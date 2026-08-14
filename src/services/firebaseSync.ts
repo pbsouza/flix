@@ -123,9 +123,20 @@ export async function getFirebaseCategories(): Promise<Category[]> {
   }
 }
 
+function sanitizeForFirestore<T extends Record<string, any>>(data: T): Record<string, any> {
+  const cleaned: Record<string, any> = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (val !== undefined) {
+      cleaned[key] = val;
+    }
+  }
+  return cleaned;
+}
+
 export async function saveFirebaseVideo(video: Video): Promise<Video> {
   const videoRef = doc(db, 'videos', video.id);
-  await setDoc(videoRef, video, { merge: true });
+  const sanitized = sanitizeForFirestore(video);
+  await setDoc(videoRef, sanitized, { merge: true });
   await bumpSyncTimestamp();
 
   // Update local cache

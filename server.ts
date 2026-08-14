@@ -6,6 +6,7 @@ import https from 'https';
 import multer from 'multer';
 import jwt from 'jsonwebtoken';
 import { createServer as createViteServer } from 'vite';
+import { File as MegaFile } from 'megajs';
 import { DatabaseService } from './server/db';
 import { ProviderFactory } from './server/providers';
 import { VideoProviderType } from './server/types';
@@ -119,16 +120,131 @@ app.post('/api/provider/resolve', async (req, res) => {
   }
 });
 
-// 6. Google Drive Video Stream Proxy
-// Handles redirects for Google Drive files to their embed preview player
-app.get('/api/provider/proxy/gdrive/:fileId', (req, res) => {
+// 6. Google Drive & Direct Stream Proxy with HTTP 206 Range headers for Smart TVs
+app.get('/api/stream/gdrive/:fileId', async (req, res) => {
   const fileId = req.params.fileId;
-  if (!fileId) return res.status(400).send('File ID missing');
+  if (!fileId) return res.status(400).send('File ID required');
 
-  // Embed preview player URL from Google Drive
-  const drivePreviewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+  const directDriveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+  
+  try {
+    const range = req.headers.range;
+    const fetchHeaders: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    };
+    if (range) {
+      fetchHeaders['Range'] = range;
+    }
 
-  res.redirect(drivePreviewUrl);
+    const driveRes = await fetch(directDriveUrl, { headers: fetchHeaders, redirect: 'follow' });
+
+    if (!driveRes.ok && driveRes.status !== 206) {
+      // Fallback redirect to drive preview if proxy fails
+      return res.redirect(`https://drive.google.com/file/d/${fileId}/preview`);
+    }
+
+    const contentType = driveRes.headers.get('content-type') || 'video/mp4';
+    const contentLength = driveRes.headers.get('content-length');
+    const contentRange = driveRes.headers.get('content-range');
+
+    res.status(driveRes.status);
+    res.setHeader('Content-Type', contentType.includes('text/html') ? 'video/mp4' : contentType);
+    if (contentLength) res.setHeader('Content-Length', contentLength);
+    if (contentRange) res.setHeader('Content-Range', contentRange);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    if (!driveRes.body) {
+      return res.end();
+    }
+
+    const reader = driveRes.body.getReader();
+    const pump = async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (!res.writableEnded) {
+            res.write(Buffer.from(value));
+          } else {
+            break;
+          }
+        }
+      } catch (e) {
+        // Client disconnected or stream ended
+      } finally {
+        res.end();
+      }
+    };
+    pump();
+  } catch (err) {
+    console.error('Error proxying Google Drive stream:', err);
+    res.redirect(`https://drive.google.com/file/d/${fileId}/preview`);
+  }
+});
+
+// 7. Mega.nz Direct Stream Proxy with Range support for Smart TV HTML5 player
+app.get('/api/stream/mega', async (req, res) => {
+  const sourceUrl = req.query.url as string;
+  if (!sourceUrl) return res.status(400).send('URL do Mega.nz é necessária');
+
+  try {
+    let cleanUrl = sourceUrl;
+    if (cleanUrl.includes('#!')) {
+      const match = cleanUrl.match(/#!([a-zA-Z0-9_-]+)!([a-zA-Z0-9_-]+)/);
+      if (match) {
+        cleanUrl = `https://mega.nz/file/${match[1]}#${match[2]}`;
+      }
+    } else if (cleanUrl.includes('/embed/')) {
+      cleanUrl = cleanUrl.replace('/embed/', '/file/');
+    }
+
+    const file = MegaFile.fromURL(cleanUrl);
+    await file.loadAttributes();
+
+    const fileSize = file.size;
+    const fileName = file.name || 'video.mp4';
+
+    let contentType = 'video/mp4';
+    if (fileName.endsWith('.mkv')) contentType = 'video/x-matroska';
+    if (fileName.endsWith('.webm')) contentType = 'video/webm';
+    if (fileName.endsWith('.avi')) contentType = 'video/x-msvideo';
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    const range = req.headers.range;
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunkSize = (end - start) + 1;
+
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+      res.setHeader('Content-Length', chunkSize);
+
+      const downloadStream = file.download({ start, end });
+      downloadStream.on('error', (err) => {
+        console.error('Mega download stream error:', err);
+        if (!res.headersSent) res.status(500).end();
+      });
+      downloadStream.pipe(res);
+    } else {
+      res.setHeader('Content-Length', fileSize);
+      res.status(200);
+      const downloadStream = file.download({});
+      downloadStream.on('error', (err) => {
+        console.error('Mega download stream error:', err);
+        if (!res.headersSent) res.status(500).end();
+      });
+      downloadStream.pipe(res);
+    }
+  } catch (err: any) {
+    console.error('Error in Mega stream proxy:', err);
+    res.status(500).send('Erro ao inicializar transmissão do Mega.nz: ' + (err?.message || ''));
+  }
 });
 
 // --- ADMIN AUTH ENDPOINTS ---
@@ -170,29 +286,43 @@ app.post('/api/admin/change-password', requireAdminAuth, (req, res) => {
 // Create Video
 app.post('/api/admin/videos', requireAdminAuth, async (req, res) => {
   try {
-    const { title, description, category_id, provider, source_url, thumbnail_type, thumbnail_url, featured, active, display_order, duration } = req.body;
+    const { title, description, category_id, provider, source_url, thumbnail_type, thumbnail_url, featured, active, display_order, duration, is_series, series_id, season, episode_number } = req.body;
 
-    if (!title || !source_url) {
-      return res.status(400).json({ error: 'Título e URL do vídeo são obrigatórios.' });
+    if (!title || (!is_series && !source_url)) {
+      return res.status(400).json({ error: 'Preencha o título e o link do vídeo.' });
     }
 
-    // Auto resolve playback URL
-    const providerType: VideoProviderType = provider || ProviderFactory.autoDetectProvider(source_url);
-    const resolved = await ProviderFactory.resolve(providerType, source_url);
+    // Auto resolve playback URL if source_url is provided
+    let providerType: VideoProviderType = provider || 'direct';
+    let playbackUrl = source_url || '';
+
+    if (source_url) {
+      providerType = provider || ProviderFactory.autoDetectProvider(source_url);
+      try {
+        const resolved = await ProviderFactory.resolve(providerType, source_url);
+        playbackUrl = resolved.playbackUrl;
+      } catch (e) {
+        console.warn('Warning resolving provider in POST /api/admin/videos:', e);
+      }
+    }
 
     const video = db.createVideo({
       title,
       description: description || '',
       category_id: category_id || 'cat-1',
       provider: providerType,
-      source_url,
-      playback_url: resolved.playbackUrl,
+      source_url: source_url || '',
+      playback_url: playbackUrl,
       thumbnail_type: thumbnail_type || 'custom',
       thumbnail_url: thumbnail_url || 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?q=80&w=1200&auto=format&fit=crop',
       featured: Boolean(featured),
       active: active !== undefined ? Boolean(active) : true,
       display_order: Number(display_order) || 1,
       duration: duration || '00:00',
+      is_series: Boolean(is_series),
+      series_id: series_id || '',
+      season: Number(season) || 1,
+      episode_number: Number(episode_number) || 1,
     });
 
     res.status(201).json(video);
@@ -207,11 +337,15 @@ app.put('/api/admin/videos/:id', requireAdminAuth, async (req, res) => {
     const id = req.params.id;
     const body = req.body;
 
-    if (body.source_url || body.provider) {
+    if (body.source_url && !body.is_series) {
       const providerType: VideoProviderType = body.provider || ProviderFactory.autoDetectProvider(body.source_url);
-      const resolved = await ProviderFactory.resolve(providerType, body.source_url);
-      body.playback_url = resolved.playbackUrl;
-      body.provider = providerType;
+      try {
+        const resolved = await ProviderFactory.resolve(providerType, body.source_url);
+        body.playback_url = resolved.playbackUrl;
+        body.provider = providerType;
+      } catch (e) {
+        console.warn('Warning resolving provider in PUT /api/admin/videos:', e);
+      }
     }
 
     const updated = db.updateVideo(id, body);

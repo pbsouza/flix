@@ -16,6 +16,11 @@ export interface Video {
   active: boolean;
   display_order: number;
   duration: string; // e.g. "12:45"
+  is_series?: boolean;
+  series_id?: string;
+  season?: number;
+  episode_number?: number;
+  views?: number;
   created_at: string;
   updated_at: string;
 }

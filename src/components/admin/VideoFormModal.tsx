@@ -15,6 +15,7 @@ const PRESET_THUMBNAILS = [
 interface VideoFormModalProps {
   video: Video | null;
   categories: Category[];
+  allVideos?: Video[];
   onSave: (data: Partial<Video>) => Promise<void>;
   onClose: () => void;
 }
@@ -22,6 +23,7 @@ interface VideoFormModalProps {
 export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   video,
   categories,
+  allVideos = [],
   onSave,
   onClose,
 }) => {
@@ -39,6 +41,12 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const [active, setActive] = useState(video?.active !== undefined ? video.active : true);
   const [displayOrder, setDisplayOrder] = useState(video?.display_order || 1);
   const [duration, setDuration] = useState(video?.duration || '05:00');
+
+  // Series & Episode fields
+  const [isSeries, setIsSeries] = useState(video?.is_series || false);
+  const [seriesId, setSeriesId] = useState(video?.series_id || '');
+  const [season, setSeason] = useState(video?.season || 1);
+  const [episodeNumber, setEpisodeNumber] = useState(video?.episode_number || 1);
 
   const [testingLink, setTestingLink] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
@@ -157,10 +165,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     setTestResult(`Capa temática aplicada (${defaultPreset.label})`);
   };
 
+  const existingSeriesList = allVideos.filter(
+    (v) => (v.is_series || v.category_id === 'cat-series') && v.id !== video?.id
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !sourceUrl.trim()) {
-      setFormError('Título e Link do Vídeo são campos obrigatórios.');
+    if (!title.trim() || (!isSeries && !sourceUrl.trim())) {
+      setFormError('Preencha os campos obrigatórios (Título e Link do Vídeo).');
       return;
     }
 
@@ -173,14 +185,18 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
         description,
         category_id: categoryId,
         provider,
-        source_url: sourceUrl,
-        playback_url: playbackUrl || sourceUrl,
+        source_url: sourceUrl || '',
+        playback_url: playbackUrl || sourceUrl || '',
         thumbnail_type: thumbnailType,
         thumbnail_url: thumbnailUrl || 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?q=80&w=1200&auto=format&fit=crop',
         featured,
         active,
-        display_order: Number(displayOrder),
-        duration,
+        display_order: Number(displayOrder) || 1,
+        duration: duration || '05:00',
+        is_series: isSeries,
+        series_id: isSeries ? '' : (seriesId || ''),
+        season: isSeries ? 1 : (Number(season) || 1),
+        episode_number: isSeries ? 1 : (Number(episodeNumber) || 1),
       });
       onClose();
     } catch (err: any) {
@@ -274,6 +290,73 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 className="w-full px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-sm focus:outline-none focus:border-red-500"
               />
             </div>
+          </div>
+
+          {/* Configuração de Série & Episódio */}
+          <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl space-y-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isSeries}
+                onChange={(e) => {
+                  setIsSeries(e.target.checked);
+                  if (e.target.checked) setSeriesId('');
+                }}
+                className="w-4 h-4 rounded text-red-600 focus:ring-red-500 bg-zinc-900 border-zinc-700"
+              />
+              <div>
+                <span className="text-xs font-bold text-white block">Este conteúdo é uma Série (Capa Principal)</span>
+                <span className="text-[11px] text-zinc-400 block">Ative para criar a capa de uma nova série e agrupar episódios.</span>
+              </div>
+            </label>
+
+            {!isSeries && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-zinc-800/80">
+                <div>
+                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block mb-1">
+                    Vincular à Série
+                  </label>
+                  <select
+                    value={seriesId}
+                    onChange={(e) => setSeriesId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-red-500"
+                  >
+                    <option value="">Nenhuma (Conteúdo Avulso / Filme)</option>
+                    {existingSeriesList.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block mb-1">
+                    Temporada
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={season}
+                    onChange={(e) => setSeason(Number(e.target.value) || 1)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-red-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block mb-1">
+                    Nº do Episódio
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={episodeNumber}
+                    onChange={(e) => setEpisodeNumber(Number(e.target.value) || 1)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs focus:outline-none focus:border-red-500"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Provider Selection */}

@@ -88,7 +88,7 @@ export const HeroFeatured: React.FC<HeroFeaturedProps> = ({ video, categories, o
             }`}
           >
             <Play className="w-4 h-4 sm:w-6 sm:h-6 fill-white" />
-            <span>ASSISTIR AGORA</span>
+            <span>{video.is_series ? 'VER EPISÓDIOS' : 'ASSISTIR AGORA'}</span>
           </button>
         </div>
       </div>

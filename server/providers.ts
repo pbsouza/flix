@@ -49,17 +49,18 @@ export class GoogleDriveProvider implements IVideoProvider {
       };
     }
 
-    // Google Drive file preview embed link
+    // Google Drive direct stream proxy link for Smart TV HTML5 player
+    const streamProxyUrl = `/api/stream/gdrive/${fileId}`;
     const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
 
     return {
-      playbackUrl: embedUrl,
-      mimeType: 'text/html',
-      isEmbedFallback: true,
+      playbackUrl: streamProxyUrl,
+      mimeType: 'video/mp4',
+      isEmbedFallback: false,
       embedUrl,
       fileId,
       provider: 'gdrive',
-      instructions: 'Link do Google Drive processado com sucesso para reprodução via preview embed.',
+      instructions: 'Link do Google Drive direcionado para o proxy de streaming direto de alta velocidade para Smart TV.',
     };
   }
 }
@@ -100,24 +101,20 @@ export class MegaNZProvider implements IVideoProvider {
 
   async resolvePlayback(sourceUrl: string): Promise<ResolvedStream> {
     const trimmed = sourceUrl.trim();
-    let embedUrl = trimmed;
-
     const extracted = this.extractFileId(trimmed);
-    if (extracted) {
-      embedUrl = `https://mega.nz/embed/${extracted}`;
-    } else if (trimmed.includes('mega.nz') || trimmed.includes('mega.io')) {
-      if (!trimmed.includes('/embed/')) {
-        embedUrl = trimmed.replace(/\/file\//i, '/embed/');
-      }
-    }
+
+    // Stream proxy URL for Mega.nz files to play directly in app HTML5 player
+    const streamProxyUrl = `/api/stream/mega?url=${encodeURIComponent(trimmed)}`;
+    const embedUrl = extracted ? `https://mega.nz/embed/${extracted}` : trimmed;
 
     return {
-      playbackUrl: embedUrl,
-      mimeType: 'text/html',
-      isEmbedFallback: true,
+      playbackUrl: streamProxyUrl,
+      mimeType: 'video/mp4',
+      isEmbedFallback: false,
       embedUrl,
+      fileId: extracted || undefined,
       provider: 'mega',
-      instructions: 'Link do Mega.nz preparado com sucesso para reprodução via embed.',
+      instructions: 'Link do Mega.nz direcionado para o proxy de transmissão direta para reprodução no player nativo do aplicativo.',
     };
   }
 }
